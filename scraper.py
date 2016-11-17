@@ -9,7 +9,6 @@ import urllib2
 from datetime import datetime
 from bs4 import BeautifulSoup
 
-
 #### FUNCTIONS 1.0
 
 def validateFilename(filename):
@@ -82,32 +81,27 @@ def convert_mth_strings ( mth_string ):
         mth_string = mth_string.replace(k, v)
     return mth_string
 
-
 #### VARIABLES 1.0
 
 entity_id = "CHC009_CCFEW_gov"
-url = "http://data.gov.uk/dataset/financial-transactions-data-charity-commission"
+url = "https://data.gov.uk/dataset/financial-transactions-data-charity-commission"
 errors = 0
 data = []
-
 
 #### READ HTML 1.0
 
 html = urllib2.urlopen(url)
-soup = BeautifulSoup(html, "lxml")
-
+soup = BeautifulSoup(html, 'lxml')
 
 #### SCRAPE DATA
 
-title_divs = soup.find_all('div', 'col-sm-6')
-for title_div in title_divs:
-    blocks = title_div.find_all('ul', 'dropdown-menu')
-    for block in blocks:
-        links = block.find_all('a', href=True)[1]
-        url = block.find_all('a', href=True)[1]['href']
-        title = links.find_previous('div', 'inner2').text.strip()
-        csvMth = title[:3]
-        csvYr = title[-4:]
+blocks = soup.find_all('div', attrs = {'class':'col-sm-6'})
+for block in blocks:
+    title = block.find('div', 'inner').text.strip()
+    url = block.find('div', 'inner-cell').find_all('a')[-1]['href']
+    if '.csv' in url:
+        csvYr = title.split('/')[1][:4]
+        csvMth = title.split('/')[0]
         csvMth = convert_mth_strings(csvMth.upper())
         data.append([csvYr, csvMth, url])
 
@@ -123,7 +117,7 @@ for row in data:
     valid = validate(filename, file_url)
 
     if valid == True:
-        scraperwiki.sqlite.save(unique_keys=['l'], data={"l": file_url, "f": filename, "d": todays_date })
+        scraperwiki.sqlite.save(unique_keys=['f'], data={"l": file_url, "f": filename, "d": todays_date })
         print filename
     else:
         errors += 1
