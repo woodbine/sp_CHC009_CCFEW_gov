@@ -84,9 +84,12 @@ def convert_mth_strings ( mth_string ):
 #### VARIABLES 1.0
 
 entity_id = "CHC009_CCFEW_gov"
-url = "https://data.gov.uk/dataset/financial-transactions-data-charity-commission"
+urls = ["https://data.gov.uk/dataset/financial-transactions-data-charity-commission",
+        "https://www.gov.uk/government/publications/invoices-over-25k-during-financial-year-2015-16"]
 errors = 0
 data = []
+url = 'http://example.com'
+
 
 #### READ HTML 1.0
 
@@ -95,15 +98,33 @@ soup = BeautifulSoup(html, 'lxml')
 
 #### SCRAPE DATA
 
-blocks = soup.find_all('div', attrs = {'class':'col-sm-6'})
-for block in blocks:
-    title = block.find('div', 'inner').text.strip()
-    url = block.find('div', 'inner-cell').find_all('a')[-1]['href']
-    if '.csv' in url:
-        csvYr = title.split('/')[1][:4]
-        csvMth = title.split('/')[0]
-        csvMth = convert_mth_strings(csvMth.upper())
-        data.append([csvYr, csvMth, url])
+for url in urls:
+    if 'charity' in url:
+        html = urllib2.urlopen(url)
+        soup = BeautifulSoup(html, 'lxml')
+        blocks = soup.find_all('div', attrs = {'class':'col-sm-6'})
+        for block in blocks:
+            title = block.find('div', 'inner').text.strip()
+            url = block.find('div', 'inner-cell').find_all('a')[-1]['href']
+            if '.csv' in url:
+                csvYr = title.split('/')[1][:4]
+                csvMth = title.split('/')[0]
+                csvMth = convert_mth_strings(csvMth.upper())
+                data.append([csvYr, csvMth, url])
+    else:
+        html = urllib2.urlopen(url)
+        soup = BeautifulSoup(html, 'lxml')
+        blocks = soup.find('div', attrs={'class': 'govspeak'}).find_all('a')
+        for block in blocks:
+            if '.csv' in block['href'] and 'preview' not in block['href']:
+                link = 'https://www.gov.uk'+block['href']
+                title = block['href'].split('/')[-1].split('.')[0]
+                csvMth = title[:3]
+                csvYr = '20'+title[-2:]
+                csvMth = convert_mth_strings(csvMth.upper())
+                data.append([csvYr, csvMth, link])
+
+
 
 
 #### STORE DATA 1.0
